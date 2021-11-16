@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import React, { Fragment, FunctionComponent, useEffect, useState } from 'react';
 import {
   AppBar,
   Avatar,
@@ -10,6 +10,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   FormControl,
   Grid,
   IconButton,
@@ -37,6 +38,7 @@ import {
   SportKind,
   SportEvent,
   getSportImageUrl,
+  getSportType,
   timeToBigNumber,
   bigNumberToTime
 } from '../../helpers';
@@ -91,8 +93,10 @@ const Admin: FunctionComponent = () => {
     console.log('result', result);
     setSportEvents(result);
   };
-  
+
   useEffect(() => {
+    fetchSportEvents();
+
     const filter = {
       address: BetOracle.address,
       topics: [
@@ -158,17 +162,25 @@ const Admin: FunctionComponent = () => {
           <Grid item md={8} xs={12}>
             <List>
               {sportEvents.map((sportEvent, index) => (
-                <ListItem key={index}>
-                  <ListItemAvatar>
-                    <Avatar>
-                      <img alt={sportEvent.name} src={getSportImageUrl(sportEvent.kind)} width={40} />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={sportEvent.name}
-                    secondary={bigNumberToTime(sportEvent.date).toFormat('LLL dd, yyyy')}
-                  />
-                </ListItem>
+                <Fragment key={index}>
+                  <ListItem>
+                    <ListItemAvatar>
+                      <Avatar alt={sportEvent.name} src={getSportImageUrl(sportEvent.kind)} />
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={sportEvent.name}
+                      secondary={(
+                        <Fragment>
+                          <Typography component="span" display="block">{getSportType(sportEvent.kind)}</Typography>
+                          <Typography component="span" display="block">{bigNumberToTime(sportEvent.date).toFormat('LLL dd, yyyy')}</Typography>
+                        </Fragment>
+                      )}
+                    />
+                  </ListItem>
+                  {(index < sportEvents.length - 1) && (
+                    <Divider variant="inset" component="li" />
+                  )}
+                </Fragment>
               ))}
             </List>
             <Dialog

@@ -1,6 +1,7 @@
-import React, { FunctionComponent, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import {
   AppBar,
+  Avatar,
   Box,
   Button,
   Card,
@@ -10,8 +11,13 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
   Grid,
   IconButton,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
   TextField,
   Toolbar,
   Typography,
@@ -21,7 +27,15 @@ import { AccountCircle } from '@material-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 
-import { provider, requestAccount } from '../../helpers';
+import {
+  provider,
+  SportKind,
+  SportEvent,
+  getSportImageUrl,
+  getSportType,
+  requestAccount,
+  bigNumberToTime
+} from '../../helpers';
 
 import DAI from '../../contracts/DAI.json';
 import Bet from '../../contracts/Bet.json';
@@ -35,66 +49,82 @@ const useStyles = makeStyles((theme) => ({
   },
   title: {
     flexGrow: 1
+  },
+  list: {
+    margin: theme.spacing(1, 0),
+    width: '100%',
+    backgroundColor: theme.palette.background.paper
   }
 }));
-
-interface Game {
-  id: number;
-  hometeam: string;
-  awayteam: string;
-  date: Date;
-  type: 'soccer' | 'rugby' | 'basketball';
-}
 
 const Home: FunctionComponent = () => {
   const classes = useStyles();
   const navigate = useNavigate();
 
-  const games: Game[] = [{
-    id: 1,
-    hometeam: 'PSG',
-    awayteam: 'OM',
-    date: new Date('2021-04-15'),
-    type: 'soccer'
-  },{
-    id: 2,
-    hometeam: 'France',
-    awayteam: 'England',
-    date: new Date('2021-06-26'),
-    type: 'rugby'
-  },{
-    id: 3,
-    hometeam: 'Lakers',
-    awayteam: 'Nets',
-    date: new Date('2021-12-25'),
-    type: 'basketball'
-  }];
-
-  const [openGame, setOpenGame] = useState(-1);
+  const [sportEvents, setSportEvents] = useState<SportEvent[]>([]);
+  const [currentGame, setCurrentGame] = useState(-1);
   const [amount, setAmount] = useState("");
 
+  const fetchSportEvents = async () => {
+    const bet = new ethers.Contract(Bet.address, Bet.abi, provider);
+    const eventIds = await bet.getBettableEvents();
+    console.log('eventIds', eventIds);
+    const result: SportEvent[] = [];
+    for (let i = 0; i < eventIds.length; i++) {
+      const evt = await bet.getEvent(eventIds[i]);
+      result.push({
+        id: evt.id,
+        name: evt.name,
+        participants: evt.participants,
+        participantCount: evt.participantCount,
+        date: evt.date,
+        kind: evt.kind
+      });
+    }
+    console.log('result', result);
+    setSportEvents(result);
+  };
+
+  useEffect(() => {
+    fetchSportEvents();
+
+    const filter = {
+      address: BetOracle.address,
+      topics: [
+        ethers.utils.id('SportEventAdded(bytes32,string,string,uint8,uint256,uint8,uint8,int8)')
+      ]
+    };
+    provider.on(filter, () => {
+      fetchSportEvents();
+    });
+  }, []);
+
   const title = useMemo(() => {
-    if (openGame === -1) {
+    if (currentGame === -1) {
       return 'Bet to undefined';
     }
-    return `Bet to ${games[openGame].type}`;
-  }, [openGame]);
+    return `Bet to ${sportEvents[currentGame].name}`;
+  }, [sportEvents, currentGame]);
 
-  const handleOpen = (index: number) => () => {
-    setOpenGame(index);
+  const handleClick = (index: number) => {
+    console.log('current index', index);
+    setCurrentGame(index);
   };
- 
+
   const handleClose = () => {
-    setOpenGame(-1);
+    setCurrentGame(-1);
   };
 
   const handleOk = async () => {
     const signer = provider.getSigner();
     const bet = new ethers.Contract(Bet.address, Bet.abi, provider);
-    const approveTx = await bet.connect(signer).approve(signer.getAddress(), ethers.utils.parseEther(amount));
-    await approveTx.wait();
-    const depositTx = await bet.connect(signer).deposit(signer.getAddress(), ethers.utils.parseEther(amount));
-    await depositTx.wait();
+    // const approveTx = await bet.connect(signer).approve(signer.getAddress(), ethers.utils.parseEther(amount));
+    // await approveTx.wait();
+    const tx = await bet.connect(signer).placeBet(sportEvents[currentGame].id, 1, {
+      from: signer.getAddress(),
+      value: ethers.utils.parseEther("0.01")
+    });
+    await tx.wait();
   };
 
   return (
@@ -116,29 +146,31 @@ const Home: FunctionComponent = () => {
       <Grid container>
         <Grid item md={2} />
         <Grid item md={8} xs={12}>
-          {games.map((game, index) => (
-            <Box key={index} my={2}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" alignItems="center">
-                    <Box flex={1}>
-                      <Typography variant="h6">{game.hometeam}</Typography>
-                    </Box>
-                    <img alt={game.type} src={`/images/${game.type}.svg`} width="64px" />
-                    <Box flex={1}>
-                      <Typography variant="h6">{game.awayteam}</Typography>
-                    </Box>
-                  </Box>
-                </CardContent>
-                <CardActions>
-                  <Button variant="contained">Count down</Button>
-                  <Button variant="contained" color="primary" onClick={handleOpen(index)}>Bet</Button>
-                </CardActions>
-              </Card>
-            </Box>
-          ))}
+          <List className={classes.list}>
+            {sportEvents.map((sportEvent, index) => (
+              <Fragment key={index}>
+                <ListItem button onClick={() => handleClick(index)}>
+                  <ListItemAvatar>
+                    <Avatar alt={sportEvent.name} src={getSportImageUrl(sportEvent.kind)} />
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={sportEvent.name}
+                    secondary={(
+                      <Fragment>
+                        <Typography component="span" display="block">{getSportType(sportEvent.kind)}</Typography>
+                        <Typography component="span" display="block">{bigNumberToTime(sportEvent.date).toFormat('LLL dd, yyyy')}</Typography>
+                      </Fragment>
+                    )}
+                  />
+                </ListItem>
+                {(index < sportEvents.length - 1) && (
+                  <Divider variant="inset" component="li" />
+                )}
+              </Fragment>
+            ))}
+          </List>
           <Dialog
-            open={openGame !== -1}
+            open={currentGame !== -1}
             onClose={handleClose}
           >
             <DialogTitle>{title}</DialogTitle>

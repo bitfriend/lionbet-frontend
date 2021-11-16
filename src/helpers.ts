@@ -42,6 +42,19 @@ export function getSportImageUrl(kind: SportKind) {
   }
 }
 
+export function getSportType(kind: SportKind) {
+  switch (kind) {
+    case SportKind.Soccer:
+      return 'Soccer';
+    case SportKind.Rugby:
+      return 'Rugby';
+    case SportKind.Basketball:
+      return 'Basketball';
+    default:
+      return '';
+  }
+}
+
 export function timeToBigNumber(dt: DateTime) {
   const seconds = Math.ceil(dt.toSeconds()).toString();
   return ethers.utils.parseUnits(seconds, 'wei');
