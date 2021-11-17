@@ -2,6 +2,22 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Troubleshooting
+
+### Error due to active network and active wallet of Metamask
+
+`Error: call revert exception (method="xxx", errorArgs=null, errorName=null, errorSignature=null, reason=null, code=CALL_EXCEPTION, version=abi/5.5.0)`
+
+Set the 1st account the was imported from hardhat to Metamask as active in My Accounts list of Metamask.
+
+Set hardhat network (`http://localhost:8545`) as active in Networks list of Metamask.
+
+### Error because of too outdated hardhat account
+
+`Nonce too high. Expected nonce to be 5 but got 6. Note that transactions can't be queued when automining.`
+
+Reset the current hardhat account in `Settings -> Advanced -> Reset Account` of Metamask.
+
 ## Available Scripts
 
 In the project directory, you can run:
