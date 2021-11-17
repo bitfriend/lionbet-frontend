@@ -4,9 +4,6 @@ import {
   Avatar,
   Box,
   Button,
-  Card,
-  CardActions,
-  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
@@ -29,18 +26,14 @@ import { ethers } from 'ethers';
 
 import {
   provider,
-  SportKind,
   SportEvent,
   getSportImageUrl,
   getSportType,
-  requestAccount,
   bigNumberToTime
-} from '../../helpers';
+} from '../helpers';
 
-import DAI from '../../contracts/DAI.json';
-import Bet from '../../contracts/Bet.json';
-import BetOracle from '../../contracts/BetOracle.json';
-import DefiPool from '../../contracts/DefiPool.json';
+import Bet from '../contracts/Bet.json';
+import BetOracle from '../contracts/BetOracle.json';
 
 const useStyles = makeStyles((theme) => ({
   root: {

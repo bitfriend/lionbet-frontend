@@ -41,8 +41,8 @@ import {
   getSportType,
   timeToBigNumber,
   bigNumberToTime
-} from '../../helpers';
-import BetOracle from '../../contracts/BetOracle.json';
+} from '../helpers';
+import BetOracle from '../contracts/BetOracle.json';
 
 const useStyles = makeStyles((theme) => ({
   root: {
