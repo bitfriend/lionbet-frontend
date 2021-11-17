@@ -23,15 +23,14 @@ import {
   Select,
   TextField,
   Toolbar,
-  Typography,
-  makeStyles
-} from '@material-ui/core';
-import { AddCircle, ChevronLeft } from '@material-ui/icons';
+  Typography
+} from '@mui/material';
+import { AddCircle, ChevronLeft } from '@mui/icons-material';
+import { LocalizationProvider, MobileDatePicker } from '@mui/lab';
+import AdapterDateFns from '@mui/lab/AdapterDateFns';
 import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 import { DateTime } from 'luxon';
-import DateFnsUtils from '@date-io/date-fns';
-import { MuiPickersUtilsProvider, KeyboardDatePicker } from '@material-ui/pickers';
 
 import {
   provider,
@@ -44,25 +43,7 @@ import {
 } from '../helpers';
 import BetOracle from '../contracts/BetOracle.json';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    flexGrow: 1
-  },
-  title: {
-    flexGrow: 1
-  },
-  formControl: {
-    margin: theme.spacing(1),
-    width: '100%',
-  },
-  backdrop: {
-    zIndex: theme.zIndex.modal + 1,
-    color: '#fff'
-  }
-}));
-
 const Admin: FunctionComponent = () => {
-  const classes = useStyles();
   const navigate = useNavigate();
 
   const [sportEvents, setSportEvents] = useState<SportEvent[]>([]);
@@ -103,11 +84,18 @@ const Admin: FunctionComponent = () => {
         ethers.utils.id('SportEventAdded(bytes32,string,string,uint8,uint256,uint8,uint8,int8)')
       ]
     };
-    provider.on(filter, () => {
+    const onFetch = () => {
       fetchSportEvents();
       setBackdropVisible(false);
       setDislogVisible(false);
-    });
+    };
+    // subscribe
+    provider.on(filter, onFetch);
+
+    // unsubscribe
+    return () => {
+      provider.removeListener(filter, onFetch);
+    };
   }, []);
 
   const handleNew = () => {
@@ -138,8 +126,8 @@ const Admin: FunctionComponent = () => {
   };
 
   return (
-    <MuiPickersUtilsProvider utils={DateFnsUtils}>
-      <div className={classes.root}>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box sx={{ flexGrow: 1 }}>
         <AppBar position="static">
           <Grid container>
             <Grid item md={2} />
@@ -148,7 +136,7 @@ const Admin: FunctionComponent = () => {
                 <IconButton color="inherit" onClick={() => navigate(-1)}>
                   <ChevronLeft />
                 </IconButton>
-                <Typography variant="h6" align="center" className={classes.title}>Admin Dashboard</Typography>
+                <Typography variant="h6" align="center" sx={{ flexGrow: 1 }}>Admin Dashboard</Typography>
                 <IconButton color="inherit" onClick={handleNew}>
                   <AddCircle />
                 </IconButton>
@@ -190,7 +178,7 @@ const Admin: FunctionComponent = () => {
               <DialogTitle>New Sport Event</DialogTitle>
               <DialogContent>
                 <Box component="form">
-                  <FormControl className={classes.formControl}>
+                  <FormControl sx={{ my: 1, width: '100%' }}>
                     <TextField
                       label="Home team"
                       variant="outlined"
@@ -198,7 +186,7 @@ const Admin: FunctionComponent = () => {
                       onChange={(evt) => setHomeTeam(evt.target.value)}
                     />
                   </FormControl>
-                  <FormControl className={classes.formControl}>
+                  <FormControl sx={{ my: 1, width: '100%' }}>
                     <TextField
                       label="Away team"
                       variant="outlined"
@@ -206,20 +194,17 @@ const Admin: FunctionComponent = () => {
                       onChange={(evt) => setAwayTeam(evt.target.value)}
                     />
                   </FormControl>
-                  <FormControl className={classes.formControl}>
-                    <KeyboardDatePicker
+                  <FormControl sx={{ my: 1, width: '100%' }}>
+                    <MobileDatePicker
                       minDate={minDate}
-                      margin="normal"
                       label="Date"
-                      format="MM/dd/yyyy"
+                      inputFormat="MM/dd/yyyy"
                       value={date}
                       onChange={(value) => setDate(value || new Date())}
-                      KeyboardButtonProps={{
-                        'aria-label': 'change date',
-                      }}
+                      renderInput={(params) => <TextField {...params} />}
                     />
                   </FormControl>
-                  <FormControl className={classes.formControl}>
+                  <FormControl sx={{ my: 1, width: '100%' }}>
                     <InputLabel id="demo-simple-select-helper-label">Kind</InputLabel>
                     <Select
                       labelId="demo-simple-select-label"
@@ -242,11 +227,17 @@ const Admin: FunctionComponent = () => {
           </Grid>
           <Grid item md={2} />
         </Grid>
-        <Backdrop className={classes.backdrop} open={backdropVisible}>
+        <Backdrop
+          sx={{
+            color: '#fff',
+            zIndex: (theme) => theme.zIndex.modal + 1
+          }}
+          open={backdropVisible}
+        >
           <CircularProgress color="inherit" size={64} />
         </Backdrop>
-      </div>
-    </MuiPickersUtilsProvider>
+      </Box>
+    </LocalizationProvider>
   );
 }
 

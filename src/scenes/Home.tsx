@@ -1,4 +1,4 @@
-import React, { Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
+import React, { ChangeEvent, Fragment, FunctionComponent, useEffect, useMemo, useState } from 'react';
 import {
   AppBar,
   Avatar,
@@ -9,18 +9,22 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
   Grid,
   IconButton,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
+  Radio,
+  RadioGroup,
   TextField,
   Toolbar,
-  Typography,
-  makeStyles
-} from '@material-ui/core';
-import { AccountCircle } from '@material-ui/icons';
+  Typography
+} from '@mui/material';
+import { AccountCircle } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { ethers } from 'ethers';
 
@@ -35,27 +39,12 @@ import {
 import Bet from '../contracts/Bet.json';
 import BetOracle from '../contracts/BetOracle.json';
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    flexGrow: 1,
-    backgroundColor: theme.palette.background.default
-  },
-  title: {
-    flexGrow: 1
-  },
-  list: {
-    margin: theme.spacing(1, 0),
-    width: '100%',
-    backgroundColor: theme.palette.background.paper
-  }
-}));
-
 const Home: FunctionComponent = () => {
-  const classes = useStyles();
   const navigate = useNavigate();
 
   const [sportEvents, setSportEvents] = useState<SportEvent[]>([]);
   const [currentGame, setCurrentGame] = useState(-1);
+  const [chosenWinner, setChosenWinner] = useState("");
   const [amount, setAmount] = useState("");
 
   const fetchSportEvents = async () => {
@@ -87,9 +76,16 @@ const Home: FunctionComponent = () => {
         ethers.utils.id('SportEventAdded(bytes32,string,string,uint8,uint256,uint8,uint8,int8)')
       ]
     };
-    provider.on(filter, () => {
+    const onFetch = () => {
       fetchSportEvents();
-    });
+    };
+    // subscribe
+    provider.on(filter, onFetch);
+
+    // unsubscribe
+    return () => {
+      provider.removeListener(filter, onFetch);
+    };
   }, []);
 
   const title = useMemo(() => {
@@ -99,35 +95,59 @@ const Home: FunctionComponent = () => {
     return `Bet to ${sportEvents[currentGame].name}`;
   }, [sportEvents, currentGame]);
 
+  const homeTeam = useMemo(() => {
+    if (currentGame === -1) {
+      return '';
+    }
+    return sportEvents[currentGame].name.split(' vs. ')[0];
+  }, [currentGame, sportEvents]);
+
+  const awayTeam = useMemo(() => {
+    if (currentGame === -1) {
+      return '';
+    }
+    return sportEvents[currentGame].name.split(' vs. ')[1];
+  }, [currentGame, sportEvents]);
+
   const handleClick = (index: number) => {
     console.log('current index', index);
     setCurrentGame(index);
+    setChosenWinner("");
+    setAmount("");
   };
 
   const handleClose = () => {
     setCurrentGame(-1);
   };
 
+  const handleChoose = (e: ChangeEvent<HTMLInputElement>, value: string) => {
+    setChosenWinner(value);
+  }
+
   const handleOk = async () => {
     const signer = provider.getSigner();
     const bet = new ethers.Contract(Bet.address, Bet.abi, provider);
     // const approveTx = await bet.connect(signer).approve(signer.getAddress(), ethers.utils.parseEther(amount));
     // await approveTx.wait();
-    const tx = await bet.connect(signer).placeBet(sportEvents[currentGame].id, 1, {
-      from: signer.getAddress(),
-      value: ethers.utils.parseEther("0.01")
-    });
+    const tx = await bet.connect(signer).placeBet(
+      sportEvents[currentGame].id,
+      parseInt(chosenWinner),
+      {
+        from: signer.getAddress(),
+        value: ethers.utils.parseEther(amount)
+      }
+    );
     await tx.wait();
   };
 
   return (
-    <div className={classes.root}>
+    <Box flexGrow={1} sx={{ bgcolor: 'background.default' }}>
       <AppBar position="static">
         <Grid container>
           <Grid item md={2} />
           <Grid item md={8} xs={12}>
             <Toolbar>
-              <Typography variant="h6" align="center" className={classes.title}>Home</Typography>
+              <Typography variant="h6" align="center" sx={{ flexGrow: 1 }}>Home</Typography>
               <IconButton color="inherit" onClick={() => navigate('/admin')}>
                 <AccountCircle />
               </IconButton>
@@ -139,7 +159,7 @@ const Home: FunctionComponent = () => {
       <Grid container>
         <Grid item md={2} />
         <Grid item md={8} xs={12}>
-          <List className={classes.list}>
+          <List sx={{ mx: 0, my: 1, width: '100%', backgroundColor: 'background.paper' }}>
             {sportEvents.map((sportEvent, index) => (
               <Fragment key={index}>
                 <ListItem button onClick={() => handleClick(index)}>
@@ -169,12 +189,21 @@ const Home: FunctionComponent = () => {
             <DialogTitle>{title}</DialogTitle>
             <DialogContent>
               <Box component="form">
-                <TextField
-                  label="Amount"
-                  variant="outlined"
-                  value={amount}
-                  onChange={(evt) => setAmount(evt.target.value)}
-                />
+                <FormControl sx={{ m: 1, width: '100%' }}>
+                  <FormLabel component="legend">Who is preferred</FormLabel>
+                  <RadioGroup row value={chosenWinner} onChange={handleChoose}>
+                    <FormControlLabel value="0" control={<Radio />} label={homeTeam} />
+                    <FormControlLabel value="1" control={<Radio />} label={awayTeam} />
+                  </RadioGroup>
+                </FormControl>
+                <FormControl sx={{ m: 1, width: '100%' }}>
+                  <TextField
+                    label="Amount"
+                    variant="outlined"
+                    value={amount}
+                    onChange={(evt) => setAmount(evt.target.value)}
+                  />
+                </FormControl>
               </Box>
             </DialogContent>
             <DialogActions>
@@ -185,7 +214,7 @@ const Home: FunctionComponent = () => {
         </Grid>
         <Grid item md={2} />
       </Grid>
-    </div>
+    </Box>
   );
 }
 

@@ -6,12 +6,7 @@ import './App.css';
 import Home from './scenes/Home';
 import Admin from './scenes/Admin';
 
-import { provider, requestAccount } from './helpers';
-
-import DAI from './contracts/DAI.json';
-import Bet from './contracts/Bet.json';
-import BetOracle from './contracts/BetOracle.json';
-import DefiPool from './contracts/DefiPool.json';
+import { requestAccount } from './helpers';
 
 const App: FunctionComponent = () => {
   console.log('REACT_APP_CHAIN_ID', process.env.REACT_APP_CHAIN_ID);
