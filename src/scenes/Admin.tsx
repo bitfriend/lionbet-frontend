@@ -41,6 +41,7 @@ import {
   timeToBigNumber,
   bigNumberToTime
 } from '../helpers';
+
 import BetOracle from '../contracts/BetOracle.json';
 
 const Admin: FunctionComponent = () => {
@@ -78,23 +79,23 @@ const Admin: FunctionComponent = () => {
   useEffect(() => {
     fetchSportEvents();
 
-    const filter = {
+    const onCreatedFilter = {
       address: BetOracle.address,
       topics: [
         ethers.utils.id('SportEventAdded(bytes32,string,string,uint8,uint256,uint8,uint8,int8)')
       ]
     };
-    const onFetch = () => {
+    const onEventCreated = () => {
       fetchSportEvents();
       setBackdropVisible(false);
       setDislogVisible(false);
     };
     // subscribe
-    provider.on(filter, onFetch);
+    provider.on(onCreatedFilter, onEventCreated);
 
     // unsubscribe
     return () => {
-      provider.removeListener(filter, onFetch);
+      provider.removeListener(onCreatedFilter, onEventCreated);
     };
   }, []);
 
